@@ -1,0 +1,45 @@
+{
+    "name": "mzh/hyperf-swagger",
+    "description": "A swagger library for Hyperf.",
+    "license": "MIT",
+    "keywords": [
+        "php",
+        "swoole",
+        "hyperf",
+        "swagger"
+    ],
+    "support": {
+    },
+    "require": {
+        "php": ">=7.2",
+        "hyperf/validation": "~2.0.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^2.9"
+    },
+    "suggest": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Mzh\\Swagger\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "hyperf": {
+            "config": "Mzh\\Swagger\\ConfigProvider"
+        }
+    },
+    "bin": [
+    ],
+    "scripts": {
+        "cs-fix": "php-cs-fixer fix $1",
+        "test": "phpunit --colors=always"
+    }
+}
