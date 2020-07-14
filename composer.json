@@ -12,7 +12,8 @@
     },
     "require": {
         "php": ">=7.2",
-        "hyperf/validation": "~2.0.0"
+        "mzh/hyperf-helper": "^0.1.0",
+        "mzh/hyperf-validate": "^0.1.3"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^2.9"
