@@ -40,7 +40,6 @@ class SwaggerJson
         /** @var GetApi $mapping */
         $mapping = null;
 
-
         foreach ($methodAnnotations as $key => $option) {
             $validate = "";
             switch (true) {
@@ -62,7 +61,6 @@ class SwaggerJson
                     break;
             }
 
-
             //没有任何验证场景就退出
             if ($validate == '') {
                 continue;
@@ -70,8 +68,7 @@ class SwaggerJson
 
             $validate = explode(".", $validate);
             $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
-
-            if (isset($validate[0]) && !class_exists($validate_class, false)) {
+            if (isset($validate[0]) && !class_exists($validate_class)) {
                 $classAnnotation->ignore[] = $methodName;
                 continue;
             }
@@ -160,13 +157,13 @@ class SwaggerJson
     {
         $arraySchema = [
             'type' => 'array',
-            'required' => ['code', 'msg', 'data'],
+            'required' => ['status', 'message', 'data'],
             'properties' => [
-                "msg" => [
+                "message" => [
                     "type" => "string",
                     "example" => "ok"
                 ],
-                "code" => [
+                "status" => [
                     "type" => "integer",
                     "example" => 200
                 ],
@@ -177,16 +174,16 @@ class SwaggerJson
         ];
         $objectSchema = [
             'type' => 'object',
-            'required' => ['code', 'msg', 'data'],
+            'required' => ['status', 'message', 'data'],
             "items" => [
                 "type" => 'object'
             ],
             'properties' => [
-                "msg" => [
+                "message" => [
                     "type" => "string",
                     "example" => "ok"
                 ],
-                "code" => [
+                "status" => [
                     "type" => "integer",
                     "example" => 200
                 ],
@@ -311,8 +308,7 @@ class SwaggerJson
         $properties = [];
         $validate = explode(".", $rule);
         $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
-
-        if (!class_exists($validate_class, false)) {
+        if (!class_exists($validate_class)) {
             return $properties;
         }
         $validation = ReflectionManager::reflectClass($validate_class)->getDefaultProperties();
