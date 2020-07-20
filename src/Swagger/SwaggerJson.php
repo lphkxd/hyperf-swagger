@@ -113,6 +113,11 @@ class SwaggerJson
             $path = $base_path . '/' . $mapping->path;
         }
         $method = strtolower($mapping->methods[0]);
+
+        if (empty($responses) && isset($this->swagger['defaultResponses'])) {
+            $responses = $this->swagger['defaultResponses'];
+        }
+
         $this->swagger['paths'][$path][$method] = [
             'tags' => [
                 $tag,
@@ -606,6 +611,7 @@ class SwaggerJson
             return;
         }
         unset($this->swagger['output_file']);
+        unset($this->swagger['defaultResponses']);
         file_put_contents($outputFile, json_encode($this->swagger, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 }
