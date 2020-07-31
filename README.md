@@ -37,3 +37,7 @@ return [
         Hyperf\HttpServer\Router\DispatcherFactory::class => Mzh\Swagger\DispathcerFactory::class
     ],
 ];
+```
+
+# 鸣谢
+思路实现来源于 https://github.com/daodao97/apidog 本插件为改良版本

@@ -9,4 +9,6 @@ namespace Mzh\Swagger\Annotation;
 class Query extends Param
 {
     public $in = 'query';
+    public $scene = '';
+    public $validate = '';
 }

@@ -9,4 +9,6 @@ namespace Mzh\Swagger\Annotation;
 class FormData extends Param
 {
     public $in = 'formData';
+    public $scene = '';
+    public $validate = '';
 }

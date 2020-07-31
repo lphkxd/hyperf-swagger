@@ -30,7 +30,7 @@ class SwaggerJson
         $this->swagger = $this->config->get('swagger');
     }
 
-    public function addPath($className, $methodName)
+    public function addPath($className, $methodName, $path, $properties)
     {
         /** @var ApiController $classAnnotation */
         $classAnnotation = ApiAnnotation::classMetadata($className);
@@ -39,45 +39,44 @@ class SwaggerJson
         $responses = [];
         /** @var GetApi $mapping */
         $mapping = null;
-
         foreach ($methodAnnotations as $key => $option) {
-            $validate = "";
+            $validate_class = "";
             switch (true) {
                 case $option instanceof Body && $option->scene != '':
+                case $option instanceof Query && $option->scene != '':
+                case $option instanceof FormData && $option->scene != '':
                     //如果没有设置模块则通过类名获取
-                    $mode = $this->getModelName($className);
-                    $validate = trim($mode . '.' . $option->scene, '.');
-                    $option->validate = $validate;
+                    $validate_class = ($option->validate == '') ? ($properties['validateClass'] ?? '') : $option->validate;
                     $methodAnnotations[$key] = $option;
                     break;
                 case $option instanceof Validation:
                 case $option instanceof RequestValidation:
                     //兼容validate规则生成body
                     $body = new Body();
-                    if ($option->mode == '') $option->mode = $this->getModelName($className);
-                    $validate = trim($option->mode . '.' . $option->scene, '.');
-                    $body->validate = trim($option->mode . '.' . $option->scene, '.');
+                    $validate_class = ($option->validate == '') ? ($properties['validateClass'] ?? '') : $option->validate;
+                    if ($option->mode != "") {
+                        $validate = explode(".", $option->mode);
+                        $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
+                        $option->scene = $validate[0] ?? '';
+                    }
                     $methodAnnotations[$key] = $body;
                     break;
             }
-
+            $option->validate = $validate_class;
             //没有任何验证场景就退出
-            if ($validate == '') {
+            if (!isset($option->scene) || $option->scene == '') {
                 continue;
             }
 
-            $validate = explode(".", $validate);
-            $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
-            if (isset($validate[0]) && !class_exists($validate_class)) {
+            if (!class_exists($validate_class)) {
                 $classAnnotation->ignore[] = $methodName;
                 continue;
             }
             $rulesClass = ReflectionManager::reflectClass($validate_class);
-            if (isset($validate[1]) && !isset($rulesClass->getDefaultProperties()['scene'][$validate[1]])) {
+            if (!isset($rulesClass->getDefaultProperties()['scene'][$option->scene])) {
                 $classAnnotation->ignore[] = $methodName;
             }
         }
-
 
         foreach ($methodAnnotations as $option) {
             if (in_array($methodName, $classAnnotation->ignore)) {
@@ -106,18 +105,14 @@ class SwaggerJson
         if ($mapping == null) {
             return;
         }
-        $base_path = $this->basePath($className);
-
-        $path = $base_path . '/' . $methodName;
-        if ($mapping->path) {
-            $path = $base_path . '/' . $mapping->path;
-        }
+//        $path = $base_path . '/' . $methodName;
+//        if ($mapping->path) {
+//            $path = $base_path . '/' . $mapping->path;
+//        }
         $method = strtolower($mapping->methods[0]);
-
         if (empty($responses) && isset($this->swagger['defaultResponses'])) {
             $responses = $this->swagger['defaultResponses'];
         }
-
         $this->swagger['paths'][$path][$method] = [
             'tags' => [
                 $tag,
@@ -140,16 +135,6 @@ class SwaggerJson
                 $this->swagger['paths'][$path][$method]['security'][] = [$key => $val['petstore_auth'] ?? []];
             }
         }
-    }
-
-    public function basePath($className)
-    {
-        $path = humpToLine($className);
-        $path = str_replace('\\', '/', $path);
-        $path = str_replace('/_', '/', $path);
-        $path = str_replace('app/controller', '', $path);
-        $path = str_replace('controller', '', $path);
-        return trim($path, '_');
     }
 
     public function getModelName($className)
@@ -202,7 +187,7 @@ class SwaggerJson
     }
 
 
-    public function rules2schema(Body $body, &$schema)
+    public function rules2schema($body, &$schema)
     {
         if ($body->validate != '') {
             $validate = $this->getValidate($body->validate, $body, $schema['required']);
@@ -250,26 +235,29 @@ class SwaggerJson
             }
         }
 
-        foreach ($body->rules as $field => $rule) {
-            $property = [];
-            $fieldNameLabel = explode('|', $field);
-            $fieldName = $fieldNameLabel[0];
-            if (!is_array($rule)) {
-                $type = $this->getTypeByRule($rule);
-            } else {
-                //TODO 结构体多层
-                $type = 'string';
+        if (isset($body->rules)) {
+            foreach ($body->rules as $field => $rule) {
+                $property = [];
+                $fieldNameLabel = explode('|', $field);
+                $fieldName = $fieldNameLabel[0];
+                if (!is_array($rule)) {
+                    $type = $this->getTypeByRule($rule);
+                } else {
+                    //TODO 结构体多层
+                    $type = 'string';
+                }
+                if ($type == 'array') {
+                    $property['$ref'] = '#/definitions/ModelArray';;
+                }
+                if ($type == 'object') {
+                    $property['$ref'] = '#/definitions/ModelObject';;
+                }
+                $property['description'] = $fieldNameLabel[1] ?? '';
+                $property['type'] = $type;
+                $schema['properties'][$fieldName] = $property;
             }
-            if ($type == 'array') {
-                $property['$ref'] = '#/definitions/ModelArray';;
-            }
-            if ($type == 'object') {
-                $property['$ref'] = '#/definitions/ModelObject';;
-            }
-            $property['description'] = $fieldNameLabel[1] ?? '';
-            $property['type'] = $type;
-            $schema['properties'][$fieldName] = $property;
         }
+
         if (!empty($body->extra)) {
 
             foreach ($body->extra as $key => $extra) {
@@ -277,7 +265,38 @@ class SwaggerJson
             }
 
         }
+
+
         return array_filter($schema);
+    }
+
+
+    public function rulesQuerySchema(Query $item, &$schema)
+    {
+        if ($item->validate != '') {
+            $schema = $this->getQueryValidate($item);
+            return array_filter($schema);
+        } else {
+            $property = [
+                'in' => $item->in,
+                'name' => $item->name,
+                'description' => $item->description,
+                'required' => $item->required,
+                'type' => $item->type,
+            ];
+            $parameters[$item->name] = $property;
+            if (!is_null($item->default)) {
+                $parameters[$item->name]['default'] = $item->default;
+            }
+            if (!is_null($item->enum)) {
+                $parameters[$item->name]['enum'] = $item->enum;
+            }
+            if (!is_null($item->example)) {
+                $parameters[$item->name]['example'] = $item->example;
+            }
+        }
+
+        return array_filter($parameters);
     }
 
 
@@ -308,16 +327,15 @@ class SwaggerJson
     }
 
 
-    public function getValidate($rule, Body $body, &$required)
+    public function getValidate($rule, $body, &$required)
     {
         $properties = [];
-        $validate = explode(".", $rule);
-        $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
-        if (!class_exists($validate_class)) {
+        if (!class_exists($body->validate)) {
             return $properties;
         }
-        $validation = ReflectionManager::reflectClass($validate_class)->getDefaultProperties();
-        $rules = $validation['scene'][$validate[1] ?? 'create'] ?? $validation['rule'] ?? [];
+        $validation = ReflectionManager::reflectClass($body->validate)->getDefaultProperties();
+        $rules = $validation['scene'][$body->scene] ?? $validation['rule'] ?? [];
+
         foreach ($rules as $field => $rule) {
             if (is_integer($field)) {
                 $field = $rule;
@@ -331,7 +349,6 @@ class SwaggerJson
             $property['description'] = $validation['field'][$field] ?? $field;
             $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
             foreach ($default as $item) {
-
                 if ($item == 'arrayHasOnlyInts') {
                     $property['type'] = 'array';
                     $property['example'] = $example[$field] ?? [1, 2];
@@ -339,45 +356,7 @@ class SwaggerJson
                 if (!strpos($item, ':')) {
                     continue;
                 }
-                list($key, $val) = explode(':', preg_replace('/\[.*\]/', '', $item));
-                switch ($key) {
-                    case 'int':
-                    case 'lt':
-                    case  'gt':
-                    case  'ge':
-                    case  'integer':
-                        $property['type'] = 'integer';
-                        break;
-                    case  'max':
-                        $property['type'] = 'string';
-                        $property['maxLength'] = intval($val);
-                        break;
-                    case  'min':
-                        $property['type'] = 'string';
-                        $property['minLength'] = intval($val);
-                        break;
-                    case 'length':
-                        list($property['minLength'], $property['maxLength']) = array_map(function ($val) {
-                            return intval($val);
-                        }, explode(",", $val));
-                        break;
-                    case "in":
-                        if (is_numeric(current(explode(",", $val)))) {
-                            $property['type'] = 'integer';
-                            $property['example'] = intval(current(explode(",", $val)));
-                        } else {
-                            $property['type'] = 'string';
-                            $property['example'] = current(explode(",", $val));
-                        }
-                        $property['enum'] = array_map(function ($val) {
-                            if (is_numeric($val)) {
-                                return intval($val);
-                            } else {
-                                return ($val);
-                            }
-                        }, explode(",", $val));
-                        break;
-                }
+                $property = array_merge($this->getValType($item), $property);
             }
             $type = $this->getTypeByRule($rule);
             $property['type'] = $type;
@@ -438,15 +417,15 @@ class SwaggerJson
             'properties' => [],
             'items' => [],
         ];
+        $query = [];
         foreach ($params as $item) {
-            $parameters[$item->name] = [
-                'in' => $item->in,
-                'name' => $item->name,
-                'description' => $item->description ?? '',
-                'required' => false,
-            ];
-
             if ($item instanceof Body) {
+                $parameters[$item->name] = [
+                    'in' => $item->in,
+                    'name' => $item->name,
+                    'description' => $item->description ?? '',
+                    'required' => false,
+                ];
                 $modelName = implode('', array_map('ucfirst', explode('/', $path)));
                 $definitions = $this->rules2schema($item, $schema);
                 $this->swagger['definitions'][$modelName] = $definitions;
@@ -455,12 +434,13 @@ class SwaggerJson
             }
 
             if ($item instanceof FormData) {
-//                $modelName = implode('', array_map('ucfirst', explode('/', $path)));
-//                $definitions = $this->rulesFormSchema($item, $schema);
-//                $this->swagger['definitions'][$modelName] = $definitions;
-//                $parameters[$item->name]['schema']['$ref'] = '#/definitions/' . $modelName;
-//                $parameters[$item->name]['required'] = $item->required;
-//                $parameters[$item->name]['type'] = $item->type;
+                $parameters[$item->name] = [
+                    'in' => $item->in,
+                    'name' => $item->name,
+                    'description' => $item->description ?? '',
+                    'required' => false,
+                ];
+
                 $property = [
                     'in' => $item->in,
                     'name' => $item->name,
@@ -493,26 +473,10 @@ class SwaggerJson
                 }
             }
             if ($item instanceof Query) {
-                $property = [
-                    'in' => $item->in,
-                    'name' => $item->name,
-                    'description' => $item->description,
-                    'required' => $item->required,
-                    'type' => $item->type,
-                ];
-                $parameters[$item->name] = $property;
-                if (!is_null($item->default)) {
-                    $parameters[$item->name]['default'] = $item->default;
-                }
-                if (!is_null($item->enum)) {
-                    $parameters[$item->name]['enum'] = $item->enum;
-                }
-                if (!is_null($item->example)) {
-                    $parameters[$item->name]['example'] = $item->example;
-                }
+                $query = $this->rulesQuerySchema($item, $query);
             }
         }
-        return array_values($parameters);
+        return array_values(array_merge($parameters, $query));
     }
 
     public function makeResponses($responses, $path, $method)
@@ -613,5 +577,88 @@ class SwaggerJson
         unset($this->swagger['output_file']);
         unset($this->swagger['defaultResponses']);
         file_put_contents($outputFile, json_encode($this->swagger, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    }
+
+    private function getQueryValidate(Query $item)
+    {
+        $parameters = [];
+        if (!class_exists($item->validate)) {
+            return $parameters;
+        }
+        $validation = ReflectionManager::reflectClass($item->validate)->getDefaultProperties();
+        $rules = $validation['scene'][$item->scene] ?? $validation['rule'] ?? [];
+        $messages = $validation['field'] ?? [];;
+        foreach ($rules as $name => $rule) {
+            $property = [
+                'in' => $item->in,
+                'name' => $name,
+                'description' => $messages[$name] ?? '',
+                'required' => false,
+                'type' => $item->type,
+            ];
+            if (is_numeric($name)) {
+                $name = $rule;
+                $property['name'] = $rule;
+                $ruleType = $validation['rule'][$name] ?? '';
+            } else {
+                $property['required'] = strpos($rule, 'require') !== false;
+                $ruleType = $rule;
+            }
+            $property = array_merge($property, $this->getValType($ruleType));
+            $example = $item->example;
+            if (isset($example[$name])) {
+                $property['example'] = $example[$name];
+            }
+            $parameters[$name] = $property;
+        }
+        return $parameters;
+    }
+
+    private function getValType($item)
+    {
+        if (empty($item) || strpos($item, ':') === false) {
+            return [];
+        }
+        $property = [];
+        list($key, $val) = explode(':', preg_replace('/\[.*\]/', '', $item));
+        switch ($key) {
+            case 'int':
+            case 'lt':
+            case  'gt':
+            case  'ge':
+            case  'integer':
+                $property['type'] = 'integer';
+                break;
+            case  'max':
+                $property['type'] = 'string';
+                $property['maxLength'] = intval($val);
+                break;
+            case  'min':
+                $property['type'] = 'string';
+                $property['minLength'] = intval($val);
+                break;
+            case 'length':
+                list($property['minLength'], $property['maxLength']) = array_map(function ($val) {
+                    return intval($val);
+                }, explode(",", $val));
+                break;
+            case "in":
+                if (is_numeric(current(explode(",", $val)))) {
+                    $property['type'] = 'integer';
+                    $property['example'] = intval(current(explode(",", $val)));
+                } else {
+                    $property['type'] = 'string';
+                    $property['example'] = current(explode(",", $val));
+                }
+                $property['enum'] = array_map(function ($val) {
+                    if (is_numeric($val)) {
+                        return intval($val);
+                    } else {
+                        return ($val);
+                    }
+                }, explode(",", $val));
+                break;
+        }
+        return $property;
     }
 }
