@@ -33,10 +33,8 @@ class Swagger
         if (!$this->config->get('swagger.enable', false)) {
             return 'swagger not start';
         }
-        $domain = $this->config->get('swagger.host', false);
-        $url = $this->config->get('swagger.output_file', false);
-        $url = str_replace(BASE_PATH . '/public', '//' . $domain, $url);
-
+        $domain = $this->config->get('swagger.host', '127.0.0.1');
+        $url = '//' . $domain . '/swagger/api?s=' . time();
         $res = ApplicationContext::getContainer()->get(ResponseInterface::class);
         $html = '
 <!-- HTML for static distribution bundle build -->
@@ -98,7 +96,12 @@ class Swagger
   </body>
 </html>
 ';
-
         return $res->withBody(new SwooleStream($html))->withHeader('content-type', 'text/html; charset=utf8');
+    }
+
+    public function api()
+    {
+        $domain = $this->config->get('swagger.output_file', '');
+        return file_get_contents($domain);
     }
 }

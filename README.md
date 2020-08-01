@@ -9,7 +9,6 @@ composer require mzh/swagger
 ```
 
 ## 配置
-
 ```php
 // config/autoload/swagger.php  swagger 基础信息
 <?php
@@ -18,6 +17,7 @@ declare(strict_types=1);
 return [
     'output_file' => BASE_PATH . '/public/swagger.json',
     'swagger' => '2.0',
+    'enable' =>false, // 是否启用web访问
     'info' => [
         'description' => 'hyperf swagger api desc',
         'version' => '1.0.0',

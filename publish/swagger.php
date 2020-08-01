@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'output_file' => BASE_PATH . '/public/swagger.json',
+    'output_file' => BASE_PATH . '/runtime/swagger.json',
     'swagger' => '2.0',
     'enable' => false, // 开启web访问？
     'host' => 'hyperf.io',
