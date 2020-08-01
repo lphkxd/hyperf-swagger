@@ -1,9 +1,12 @@
 # hyperf swagger 
 
 hyperf-swagger 注解自动生成文档，配合mzh/validate 验证器可自动根据验证规则、场景生成文档所需参数，无需手动编写doc文档
+<img src="./screenshot/2.png" />
 
+![Image 注解](./screenshot/2.png)
+![Image 文档](./screenshot/3.png)
+<img src="./screenshot/3.png" />
 ## 安装
-
 ```
 composer require mzh/swagger 
 ```
@@ -38,6 +41,9 @@ return [
     ],
 ];
 ```
+# 访问
+### 通过以上配置后，启动项目访问
+http://您的域名/swagger/index 即可直接展示
 
 # 鸣谢
 思路实现来源于 https://github.com/daodao97/apidog 本插件为改良版本
