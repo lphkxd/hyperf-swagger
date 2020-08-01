@@ -623,6 +623,7 @@ class SwaggerJson
         list($key, $val) = explode(':', preg_replace('/\[.*\]/', '', $item));
         switch ($key) {
             case 'int':
+            case 'intOrArrayInt':
             case 'lt':
             case  'gt':
             case  'ge':
