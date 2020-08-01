@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Mzh\Swagger;
 
 use Hyperf\Di\Exception\ConflictAnnotationException;
+use Hyperf\Di\ReflectionManager;
 use Hyperf\HttpServer\Annotation\AutoController;
 use Hyperf\HttpServer\Annotation\Controller;
 use Hyperf\HttpServer\Annotation\Mapping;
@@ -32,21 +33,25 @@ class DispathcerFactory extends DispatcherFactory
      */
     protected function handleController(string $className, Controller $annotation, array $methodMetadata, array $middlewares = []): void
     {
-        if (!$methodMetadata) {
-            return;
-        }
+        $class = ReflectionManager::reflectClass($className);
+        $methods = $class->getMethods(\ReflectionMethod::IS_PUBLIC);
         $prefix = $this->getPrefix($className, $annotation->prefix);
         $router = $this->getRouter($annotation->server);
-        foreach ($methodMetadata as $methodName => $values) {
+        $properties = $class->getDefaultProperties();
+        foreach ($methods as $methodName => $method) {
             $methodMiddlewares = $middlewares;
             // Handle method level middlewares.
-            if (isset($values)) {
-                $methodMiddlewares = array_merge($methodMiddlewares, $this->handleMiddleware($values));
+            if (isset($methodMetadata[$methodName])) {
+                $methodMiddlewares = array_merge($methodMiddlewares, $this->handleMiddleware($methodMetadata[$methodName]));
                 $methodMiddlewares = array_unique($methodMiddlewares);
             }
-
-            foreach ($values as $mapping) {
-                if (!($mapping instanceof Mapping)) {
+            $methodName = $method->getName();
+            if (substr($methodName, 0, 2) === '__') {
+                continue;
+            }
+            $methodAnnotations = ApiAnnotation::methodMetadata($method->class, $method->name);
+            foreach ($methodAnnotations as $mapping) {
+                if (!$mapping instanceof Mapping) {
                     continue;
                 }
                 if (!isset($mapping->methods)) {
@@ -67,13 +72,14 @@ class DispathcerFactory extends DispatcherFactory
                 $router->addRoute($mapping->methods, $path, [$className, $methodName], [
                     'middleware' => $methodMiddlewares,
                 ]);
-                $this->swagger->addPath($className, $methodName, $path);
+                $this->swagger->addPath($className, $methodName, $path,$properties);
             }
         }
     }
 
     protected function initAnnotationRoute(array $collector): void
     {
+
 
         foreach ($collector as $className => $metadata) {
             if (isset($metadata['_c'][ApiController::class])) {
@@ -99,7 +105,7 @@ class DispathcerFactory extends DispatcherFactory
     private function hasRoute(RouteCollector $router, Mapping $mapping, $path)
     {
         foreach ($router->getData() as $datum) {
-            foreach ($mapping->methods as $method){
+            foreach ($mapping->methods as $method) {
                 if (isset($datum[$method][$path])) return true;
             }
         }
