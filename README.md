@@ -5,7 +5,7 @@ hyperf-swagger 注解自动生成文档，配合mzh/validate 验证器可自动�
 ![Image 文档](./screenshot/3.png)
 ## 1、安装
 ```
-composer require mzh/swagger 
+composer require mzh/hyperf-swagger 
 ```
 ## 2、发布配置文件
 ```
