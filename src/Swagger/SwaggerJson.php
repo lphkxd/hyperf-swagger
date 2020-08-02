@@ -79,6 +79,12 @@ class SwaggerJson
             }
         }
 
+        foreach ($methodAnnotations as $key => $option) {
+            if (($option instanceof Body || $option instanceof Query || $option instanceof FormData) && in_array($methodName, $classAnnotation->ignore)) {
+                unset($classAnnotation->ignore[array_search($methodName, $classAnnotation->ignore)]);
+            }
+        }
+
         foreach ($methodAnnotations as $option) {
             if (in_array($methodName, $classAnnotation->ignore)) {
                 continue;
@@ -250,7 +256,7 @@ class SwaggerJson
     }
 
 
-    public function rulesQuerySchema(Query $item, &$schema)
+    public function rulesQuerySchema(Query $item, $schema)
     {
         if ($item->validate != '') {
             $schema = $this->getQueryValidate($item);
@@ -313,7 +319,7 @@ class SwaggerJson
             return $properties;
         }
         $validation = ReflectionManager::reflectClass($body->validate)->getDefaultProperties();
-        $rules = $validation['scene'][$body->scene] ?? $validation['rule'] ?? [];
+        $rules = $validation['scene'][$body->scene] ?? [];
 
         foreach ($rules as $field => $rule) {
             if (is_integer($field)) {
@@ -461,7 +467,7 @@ class SwaggerJson
                 }
             }
             if ($item instanceof Query) {
-                $query = $this->rulesQuerySchema($item, $query);
+                $query = array_merge($this->rulesQuerySchema($item, $query), $query);
             }
         }
         return array_values(array_merge($parameters, $query));
@@ -570,7 +576,7 @@ class SwaggerJson
             return $parameters;
         }
         $validation = ReflectionManager::reflectClass($item->validate)->getDefaultProperties();
-        $rules = $validation['scene'][$item->scene] ?? $validation['rule'] ?? [];
+        $rules = $validation['scene'][$item->scene] ?? [];
         $messages = $validation['field'] ?? [];;
         foreach ($rules as $name => $rule) {
             $property = [
