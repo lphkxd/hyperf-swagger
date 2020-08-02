@@ -59,12 +59,7 @@ class DispathcerFactory extends DispatcherFactory
                 }
                 $path = $prefix . '/' . $methodName;
                 if ($mapping->path) {
-                    $justId = preg_match('/{.*}/', $mapping->path);
-                    if ($justId) {
-                        $path = $prefix . '/' . $mapping->path;
-                    } else {
-                        $path = $prefix . '/' . $mapping->path;
-                    }
+                    $path = $prefix . '/' . $mapping->path;
                 }
                 if ($this->hasRoute($router, $mapping, $path)) {
                     continue;
@@ -72,15 +67,17 @@ class DispathcerFactory extends DispatcherFactory
                 $router->addRoute($mapping->methods, $path, [$className, $methodName], [
                     'middleware' => $methodMiddlewares,
                 ]);
-                $this->swagger->addPath($className, $methodName, $path,$properties);
+                $justId = preg_match('/{.*}/',$path);
+                if ($justId) {
+                    $path = preg_replace("@:(.*?)}@is", "}", $path);
+                }
+                $this->swagger->addPath($className, $methodName, $path, $properties);
             }
         }
     }
 
     protected function initAnnotationRoute(array $collector): void
     {
-
-
         foreach ($collector as $className => $metadata) {
             if (isset($metadata['_c'][ApiController::class])) {
                 $middlewares = $this->handleMiddleware($metadata['_c']);
