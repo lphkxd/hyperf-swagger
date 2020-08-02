@@ -12,6 +12,7 @@ use Mzh\Swagger\Annotation\Body;
 use Mzh\Swagger\Annotation\FormData;
 use Mzh\Swagger\Annotation\GetApi;
 use Mzh\Swagger\Annotation\Param;
+use Mzh\Swagger\Annotation\Path;
 use Mzh\Swagger\Annotation\Query;
 use Mzh\Swagger\ApiAnnotation;
 use Mzh\Validate\Annotations\RequestValidation;
@@ -117,7 +118,7 @@ class SwaggerJson
             'tags' => [
                 $tag,
             ],
-            'operationId' => str_replace('/', '', $path),
+            'operationId' => $method . str_replace('/', '', $path),
             'summary' => $mapping->summary,
             'parameters' => $this->makeParameters($params, $path),
             'consumes' => [
@@ -419,6 +420,15 @@ class SwaggerJson
         ];
         $query = [];
         foreach ($params as $item) {
+            if ($item instanceof Path) {
+                $parameters[$item->name] = [
+                    'in' => $item->in,
+                    'name' => $item->name,
+                    'description' => $item->description ?? '',
+                    'required' => false,
+                ];
+            }
+
             if ($item instanceof Body) {
                 $parameters[$item->name] = [
                     'in' => $item->in,
