@@ -148,41 +148,19 @@ class SwaggerJson
     {
         $arraySchema = [
             'type' => 'array',
-            'required' => ['status', 'message', 'data'],
-            'properties' => [
-                "message" => [
-                    "type" => "string",
-                    "example" => "ok"
-                ],
-                "status" => [
-                    "type" => "integer",
-                    "example" => 200
-                ],
-                "data" => [
-                    "type" => "object",
-                    "example" => (object)null
-                ]]
+            'required' => [],
+            'items' => [
+                'type' => 'string'
+            ],
         ];
         $objectSchema = [
             'type' => 'object',
-            'required' => ['status', 'message', 'data'],
-            "items" => [
-                "type" => 'object'
+            'required' => [],
+            'items' => [
+                'type' => 'string'
             ],
-            'properties' => [
-                "message" => [
-                    "type" => "string",
-                    "example" => "ok"
-                ],
-                "status" => [
-                    "type" => "integer",
-                    "example" => 200
-                ],
-                "data" => [
-                    "type" => "object",
-                    "example" => (object)null
-                ]]
         ];
+
         $this->swagger['definitions']['ModelArray'] = $arraySchema;
         $this->swagger['definitions']['ModelObject'] = $objectSchema;
     }
@@ -495,23 +473,19 @@ class SwaggerJson
         $resp = [];
         $default = false;
         /** @var ApiResponse $item */
-        if (empty($responses)) {
-            $response = new ApiResponse();
-            $response->schema['code'] = 200;
-            $response->schema['msg'] = 'success';
-            $response->schema['data'] = (object)[];
-            $response->code = 200;
-            $response->description = '处理成功';
-            $responses[] = $response;
-            $response = new ApiResponse();
-            $response->code = 500;
-            $response->schema['code'] = 500;
-            $response->schema['msg'] = 'error';
-            $response->schema['data'] = (object)null;
-            $response->description = '处理失败';
-            $responses[] = $response;
+        if (!$responses instanceof ApiResponse) {
+            $tmp = $responses;
+            $responses = [];
+            foreach ($tmp as $code => $item) {
+                $response = new ApiResponse();
+                $response->code = $code;
+                $response->schema = $item['schema'] ?? '';
+                $response->description = $item['description'];
+                $responses[] = $response;
+            }
             $default = true;
         }
+
         foreach ($responses as $item) {
             $resp[$item->code] = [
                 'description' => $item->description,
