@@ -58,7 +58,7 @@ class SwaggerJson
                     if ($option->mode != "") {
                         $validate = explode(".", $option->mode);
                         $validate_class = "\\App\\Validate\\" . $validate[0] . "Validation";
-                        $option->scene = $validate[0] ?? '';
+                        if ($option->scene == '') $option->scene = $validate[0] ?? '';
                     }
                     $body->validate = $validate_class;
                     $body->scene = $option->scene;
