@@ -13,8 +13,17 @@ class PutApi extends Mapping
     public $summary;
     public $description;
     public $deprecated;
-    public $security = true;
     public $methods = ['PUT'];
+    /**
+     * 是否验证用户权限
+     * @var bool
+     */
+    public $security = true;
+    /**
+     * 是否对登录用户开放
+     * @var bool
+     */
+    public $userOpen = false;
 
     public function __construct($value = null)
     {

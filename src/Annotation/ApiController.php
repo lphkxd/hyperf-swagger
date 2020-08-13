@@ -28,4 +28,16 @@ class ApiController extends Controller
      * @var string
      */
     public $description = '';
+
+    /**
+     * 控制器内是否全部只需登录就可以访问？
+     * @var bool
+     */
+    public $userOpen = false;
+
+    /**
+     * 如果选择否，则控制器内所有方法都不进行权限验证，直接完全对外开放
+     * @var bool
+     */
+    public $security = true;
 }

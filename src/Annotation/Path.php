@@ -9,4 +9,6 @@ namespace Mzh\Swagger\Annotation;
 class Path extends Param
 {
     public $in = 'path';
+    public $userOpen = false;
+
 }
