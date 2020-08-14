@@ -70,8 +70,8 @@ class Swagger
 
   <body>
     <div id="swagger-ui"></div>
-        <script src="http://cdn.staticfile.org/swagger-ui/3.31.1/swagger-ui-bundle.min.js"> </script>
-    <script src="http://cdn.staticfile.org/swagger-ui/3.31.1/swagger-ui-standalone-preset.min.js"> </script>
+        <script src="//cdn.staticfile.org/swagger-ui/3.31.1/swagger-ui-bundle.min.js"> </script>
+    <script src="//cdn.staticfile.org/swagger-ui/3.31.1/swagger-ui-standalone-preset.min.js"> </script>
     <script>
     window.onload = function() {
       // Begin Swagger UI call region
