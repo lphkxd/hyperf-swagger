@@ -335,7 +335,11 @@ class SwaggerJson
             }
             $property = [];
             $property['description'] = $validation['field'][$field] ?? $field;
-            $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
+            if (is_array($rule)) {
+                $default = $rule;
+            } else {
+                $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
+            }
             foreach ($default as $item) {
                 if ($item == 'arrayHasOnlyInts') {
                     $property['type'] = 'array';
@@ -375,6 +379,9 @@ class SwaggerJson
 
     public function getTypeByRule($rule)
     {
+        if (is_array($rule)) {
+            return 'array';
+        }
         $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
         if (array_intersect($default, ['int', 'lt', 'gt', 'ge', 'integer', 'max', 'min'])) {
             return 'integer';
