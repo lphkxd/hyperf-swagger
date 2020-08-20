@@ -105,6 +105,6 @@ class Swagger
             return 'swagger not start';
         }
         $domain = $this->config->get('swagger.output_file', '');
-        return file_get_contents($domain);
+        return json_decode(file_get_contents($domain), true);
     }
 }

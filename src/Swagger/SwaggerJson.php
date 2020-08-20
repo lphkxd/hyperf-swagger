@@ -123,19 +123,16 @@ class SwaggerJson
         if (empty($responses) && isset($this->swagger['defaultResponses'])) {
             $responses = $this->swagger['defaultResponses'];
         }
+        list($parameters, $consumes) = $this->makeParameters($params, $path, $method);
         $this->swagger['paths'][$path][$method] = [
             'tags' => [
                 $tag,
             ],
             'operationId' => $method . str_replace('/', '', $path),
             'summary' => $mapping->summary,
-            'parameters' => $this->makeParameters($params, $path),
-            'consumes' => [
-                "application/json",
-            ],
-            'produces' => [
-                "application/json",
-            ],
+            'parameters' => $parameters,
+            'consumes' => $consumes,
+            'produces' => $consumes,
             'responses' => $this->makeResponses($responses, $path, $method),
             'description' => $mapping->description,
         ];
@@ -335,11 +332,7 @@ class SwaggerJson
             }
             $property = [];
             $property['description'] = $validation['field'][$field] ?? $field;
-            if (is_array($rule)) {
-                $default = $rule;
-            } else {
-                $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
-            }
+            $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
             foreach ($default as $item) {
                 if ($item == 'arrayHasOnlyInts') {
                     $property['type'] = 'array';
@@ -399,8 +392,9 @@ class SwaggerJson
     }
 
 
-    public function makeParameters($params, $path)
+    public function makeParameters($params, $path, $method = '')
     {
+        $consumes = ["application/json"];
         $this->initModel();
         $path = str_replace(['{', '}'], '', $path);
         $parameters = [];
@@ -418,11 +412,11 @@ class SwaggerJson
                 $parameters[$item->name] = [
                     'in' => $item->in,
                     'name' => $item->name,
+                    'type' =>  $item->type ?? 'string',
                     'description' => $item->description ?? '',
                     'required' => false,
                 ];
             }
-
             if ($item instanceof Body) {
                 $parameters[$item->name] = [
                     'in' => $item->in,
@@ -436,8 +430,10 @@ class SwaggerJson
                 $parameters[$item->name]['schema']['$ref'] = '#/definitions/' . $modelName;
                 $parameters[$item->name]['required'] = !empty($schema['required']);
             }
-
             if ($item instanceof FormData) {
+                if ($method == 'post') {
+                    $consumes = ["application/x-www-form-urlencoded"];
+                }
                 $parameters[$item->name] = [
                     'in' => $item->in,
                     'name' => $item->name,
@@ -450,7 +446,7 @@ class SwaggerJson
                     'name' => $item->name,
                     'description' => $item->description,
                     'required' => $item->required,
-                    'type' => $item->type,
+                    'type' => $item->type ?? 'string',
                 ];
                 if ($item->type == 'array') {
                     $property['name'] = "{$item->name}[]";
@@ -480,7 +476,7 @@ class SwaggerJson
                 $query = array_merge($this->rulesQuerySchema($item, $query), $query);
             }
         }
-        return array_values(array_merge($parameters, $query));
+        return [array_values(array_merge($parameters, $query)), $consumes];
     }
 
     public function makeResponses($responses, $path, $method)
