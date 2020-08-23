@@ -332,7 +332,11 @@ class SwaggerJson
             }
             $property = [];
             $property['description'] = $validation['field'][$field] ?? $field;
-            $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
+            if (is_array($rule)) {
+                $default = $rule;
+            } else {
+                $default = explode('|', preg_replace('/\[.*\]/', '', $rule));
+            }
             foreach ($default as $item) {
                 if ($item == 'arrayHasOnlyInts') {
                     $property['type'] = 'array';
