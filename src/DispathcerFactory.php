@@ -64,7 +64,7 @@ class DispathcerFactory extends DispatcherFactory
                 if ($this->hasRoute($router, $mapping, $path)) {
                     continue;
                 }
-                $path = str_replace('/_self','',$path);
+                $path = str_replace('/_self_path','',$path);
                 $router->addRoute($mapping->methods, $path, [$className, $methodName], [
                     'middleware' => $methodMiddlewares,
                 ]);
