@@ -72,6 +72,10 @@ class SwaggerJson
                 continue;
             }
 
+            if (is_bool($classAnnotation->ignore)){
+                return;
+            }
+
             if (!class_exists($validate_class)) {
                 $classAnnotation->ignore[] = $methodName;
                 continue;
@@ -89,6 +93,10 @@ class SwaggerJson
         }
 
         foreach ($methodAnnotations as $option) {
+            if (is_bool($classAnnotation->ignore)){
+                return;
+            }
+
             if (in_array($methodName, $classAnnotation->ignore)) {
                 continue;
             }
