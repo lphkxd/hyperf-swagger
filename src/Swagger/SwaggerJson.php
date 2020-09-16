@@ -72,7 +72,7 @@ class SwaggerJson
                 continue;
             }
 
-            if (is_bool($classAnnotation->ignore)){
+            if (is_bool($classAnnotation->ignore)) {
                 return;
             }
 
@@ -93,7 +93,7 @@ class SwaggerJson
         }
 
         foreach ($methodAnnotations as $option) {
-            if (is_bool($classAnnotation->ignore)){
+            if (is_bool($classAnnotation->ignore)) {
                 return;
             }
 
@@ -424,7 +424,7 @@ class SwaggerJson
                 $parameters[$item->name] = [
                     'in' => $item->in,
                     'name' => $item->name,
-                    'type' =>  $item->type ?? 'string',
+                    'type' => $item->type ?? 'string',
                     'description' => $item->description ?? '',
                     'required' => false,
                 ];
@@ -497,19 +497,20 @@ class SwaggerJson
         $resp = [];
         $default = false;
         /** @var ApiResponse $item */
-        if (!$responses instanceof ApiResponse) {
-            $tmp = $responses;
-            $responses = [];
-            foreach ($tmp as $code => $item) {
-                $response = new ApiResponse();
-                $response->code = $code;
-                $response->schema = $item['schema'] ?? '';
-                $response->description = $item['description'];
-                $responses[] = $response;
+        $tmp = $responses;
+        $responses = [];
+        foreach ($tmp as $code => $response) {
+            if (!$response instanceof ApiResponse) {
+                $item = new ApiResponse();
+                $item->code = $code;
+                $item->schema = $response['schema'] ?? [];
+                $item->description = $response['description'] ?? '';
+                $response = $item;
+                unset($item);
+                $default = true;
             }
-            $default = true;
+            $responses[] = $response;
         }
-
         foreach ($responses as $item) {
             $resp[$item->code] = [
                 'description' => $item->description,
